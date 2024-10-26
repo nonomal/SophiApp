@@ -1,4 +1,4 @@
-name: Build Release
+name: Build
 
 on: 
   push:
@@ -22,14 +22,12 @@ jobs:
 
     - name: Preparing files
       run: |
-        . "SophiApp\Scripts\Set-ReleaseTag.ps1" "${{ github.ref_name }}"
-        . "SophiApp\Scripts\Uncomment-AppMethods.ps1"
-        . "SophiApp\Scripts\Set-DebugMode.ps1"
-        . "SophiApp\Scripts\Set-WinmdPath.ps1"
+        . "src\Scripts\Set-ReleaseTag.ps1" "${{ github.ref_name }}"
+        . "src\Scripts\Set-DebugMode.ps1"
 
     - name: Downloading files
       run: |
-        . SophiApp\Scripts\Get-Dependencies.ps1
+        . src\Scripts\Get-Dependencies.ps1
 
     - name: Setup NuGet
       uses: nuget/setup-nuget@main
@@ -37,27 +35,30 @@ jobs:
         nuget-version: latest
 
     - name: Restore NuGet Package
-      run: nuget restore "D:\a\SophiApp\SophiApp\SophiApp\SophiApp.sln"
+      run: nuget restore "src\SophiApp.sln"
 
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@master
+      uses: microsoft/setup-msbuild@main
 
     - name: Run MSBuild
-      run: msbuild SophiApp\SophiApp.sln /p:Configuration=$env:Configuration /p:platform=$env:Platform
+      run: msbuild src\SophiApp.sln /p:Configuration=$env:Configuration /p:platform=$env:Platform
       env:
         Platform: ${{ matrix.platform }}
         Configuration: ${{ matrix.configuration }}
 
     - name: Cleanup
       run: |
-        Get-ChildItem -Path SophiApp\SophiApp\bin\Release -Exclude @("*.exe", "*.config") | Remove-Item -Force -Recurse -Confirm:$false
-        . SophiApp\Scripts\Copy-Dependencies.ps1
-        
+        Get-ChildItem -Path src\SophiApp\bin\Release -Exclude @("*.exe", "*.config") | Remove-Item -Force -Recurse -Confirm:$false
+
+        # Copy downloaded dependencies to the created Bin folder
+        New-Item -Path src\SophiApp\bin\Release\Bin -ItemType Directory -Force
+        Get-ChildItem -Path "src\Binary" | Copy -Destination src\SophiApp\bin\Release\Bin -Force
+
     - name: Compressing folder
       id: zip_hash
       run: |
         $Parameters = @{
-            Path     = "SophiApp\SophiApp\bin\Release"
+            Path     = "src\SophiApp\bin\Release"
             NewName  = "SophiApp"
             PassThru = $true
         }
@@ -71,26 +72,36 @@ jobs:
         Compress-Archive @Parameters
 
         $zip_hash = (Get-FileHash -Path SophiApp.zip -Algorithm SHA256).Hash
-        Write-Host -Object "SophiApp.zip SHA256 hash: $((Get-FileHash -Path SophiApp.zip -Algorithm SHA256).Hash)"
-        echo "::set-output name=zip_hash::$zip_hash"
+        Write-Host -Object "SophiApp.zip SHA256 hash: $($zip_hash)"
+        echo "zip_hash=$zip_hash" >> $env:GITHUB_ENV
 
     - name: ReleaseNotesTemplate
       id: read_release
       run: |
+        $Token = "${{ secrets.GITHUB_TOKEN }}"
+            $Headers = @{
+            Accept        = "application/json"
+            Authorization = "Bearer $Token"
+        }
         $Parameters = @{
             Uri             = "https://api.github.com/repos/Sophia-Community/SophiApp/releases"
+            Headers         = $Headers
             UseBasicParsing = $true
             Verbose         = $true
         }
         $Penultimate = (Invoke-RestMethod @Parameters).tag_name | Select-Object -Index 1
 
-        $html_url = ((irm "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs").jobs | Where-Object -FilterScript {$_.run_id -eq "${{ github.run_id }}"}).html_url
+        $Parameters = @{
+           Uri             = "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs"
+           UseBasicParsing = $true
+           Verbose         = $true
+        }
+        $html_url = ((Invoke-RestMethod @Parameters).jobs | Where-Object -FilterScript {$_.run_id -eq "${{ github.run_id }}"}).html_url
+        # No need to replace special characters with percent-encoding ones
+        (Get-Content -Path ReleaseNotesTemplate.md -Encoding utf8 -Raw).replace("NewVersion", "${{ github.ref_name }}").replace("OldVersion", $Penultimate).replace("CurrentDate", $(Get-Date -f "dd.MM.yyyy")).replace("html_url", $html_url).replace("SHA256_hash", "${{ steps.zip_hash.outputs.zip_hash }}") | Set-Content -Path ReleaseNotesTemplate.md -Encoding UTF8 -Force
 
         # https://en.wikipedia.org/wiki/Percent-encoding
-        $Release = (Get-Content -Path ReleaseNotesTemplate.md -Encoding utf8 -Raw).replace("%", "%25").replace("`n", "%0A").replace("`r", "%0D").replace("NewVersion", "${{ github.ref_name }}").replace("OldVersion", $Penultimate).replace("CurrentDate", $(Get-Date -f "dd.MM.yyyy")).replace("html_url", $html_url).replace("SHA256_hash", "${{ steps.zip_hash.outputs.zip_hash }}")
-
-        # https://trstringer.com/github-actions-multiline-strings/
-        echo "::set-output name=RELEASE_BODY::$Release"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "ReleaseBody=ReleaseNotesTemplate.md"
 
     - name: Uploading
       uses: softprops/action-gh-release@master
@@ -98,4 +109,4 @@ jobs:
         name: ${{ github.ref_name }}
         token: ${{ github.token }}
         files: SophiApp.zip
-        body: ${{ steps.read_release.outputs.RELEASE_BODY }}
+        body_path: ${{ steps.read_release.outputs.ReleaseBody }}
