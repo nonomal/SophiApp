@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.97 — 26.07.2023
+
+* Fixed #188;
+* `SophiApp` was added to [WinGet](https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/TeamSophia/SophiApp)
+
+  ```powershell
+  winget install sophiapp --accept-source-agreements --location D:\folder
+  winget install --id=TeamSophia.SophiApp --accept-source-agreements --location D:\folder
+  ```
+
+  * Merged #189;
+
+> **Note**: If you installed `SophiApp` via `WinGet`, before removing files, you should uninstall `SophiApp` via `WinGet` first, unless you won't be able to re-download package again.
+
+```powershell
+winget uninstall sophiapp --force
+```
+
+## 1.0.95 — 02.07.2023
+
+* Updated Italian, German translations;
+  * Thanks to @bovirus and @sensinsane.
+* Fixed URL for AntiZapret (capable for Russian region only).
+
+## 1.0.94 — 31.01.2023
+
+* Updated description for disabling DiagTrack service;
+  * Closes #173.
+* Updated Italian translation;
+  * Thanks to @bovirus.
+* Merged #167
+  * Thanks to @SunsetTechuila.
+
+All efforts are directed towards the SophiApp 2.0 development. Read more: <https://t.me/SophiaNews/1311>
+
+## 1.0.93 — 08.01.2023
+
+* #167 closed;
+  * Thanks to @SunsetTechuila.
+* Please pay attention that these domains have to be whitelisted in you firewall to let `SophiApp` works. The domains the app interacts with related to `Microsoft` resources to check for the latest Visual C++ Redistributables available, .NET Desktop Runtimes and so on;
+  * https://raw.githubusercontent.com
+  * https://github.com
+  * https://download.visualstudio.microsoft.com
+  * https://builds.dotnet.microsoft.com
+  * https://www.google.com
+  * https://g.live.com
+  * https://oneclient.sfx.ms
+* Minor changes.
+
+## 1.0.92 — 17.12.2022
+
+* Added Polish translation
+  * Thanks to @alan-null.
+* Update Ukrainian translation
+  * Thanks to @lowl1f3
+
+## 1.0.91 — 11.12.2022
+
+* Bumped nuget Json.NET to 13.0.2;
+* Added Spanish translation
+  * Thanks to @Marcosgt3.
+* Minor changes.
+
+## 1.0.90 — 06.12.2022
+
+* Fixed `Sophia` registry key wasn't saving;
+ * Please remove and re-create SophiApp scheduled tasks to get all working. 😸 
+* Switched .NET Desktop Runtime 6 to the 7th version.
+
+## 1.0.88 — 01.12.2022
+
+* Updated the Scheduled tasks notification toasts UI;
+  * ![Image](https://github.com/Sophia-Community/SophiApp/raw/master/img/Toasts.png)
+  * Remove and re-create SophiApp scheduled tasks to get new toasts UI.
+* Json.NET bumped to 13.0.2;
+* Minor changes.
+
+## 1.0.87 — 04.11.2022
+
+* Finally, headings are now bold 😸;
+  * #150 closed.
+
+![light](https://user-images.githubusercontent.com/10544660/199981391-3401e761-177a-4dc1-af56-93100856f52e.png)
+![dark](https://user-images.githubusercontent.com/10544660/199981407-3d7bec70-3476-4d4f-ba78-f441830ee41e.png)
+
+## 1.0.86 — 30.10.2022
+
+* Small code refactoring;
+* Code refactoring for CI/CD scripts;
+* Fixed old bug in Meet Now function when it didn't save registry key value;
+* The function to open `Windows Terminal` as admin in the context menu item as administrator is back;
+  * It fully relies on `Windows Terminal` feature by editing its config. No more 3rd part context menu items.
+* Improved all scheduled tasks creation;
+  * Unified tasks with [Sophia Script](https://github.com/farag2/Sophia-Script-for-Windows): they are created now in `Sophia` folder;
+  * When you remove all tasks in the `Task Scheduler`, folder will be removed too;
+  * If you run the app, it will show that you haven't any scheduled tasks created due to they are created in a new folder by default. Create them again, and all your old tasks will be removed without traces.
+
 ## 1.0.84 — 21.09.2022
 
 * Action config was totally [re-written](https://github.com/Sophia-Community/SophiApp/blob/master/.github/workflows/SophiApp.yml);
@@ -131,7 +228,7 @@ Diff from v1.0.0.53
 * Added the ability to download the latest stable build of SophiApp via PowerShell. Just type the command below, and it will download SophiaApp.zip from GitHub to the Downloads folder, expand the archive, and remove it. Elevated privileges are not needed. The app won't be launched.
 
   ```powershell
-  irm app.sophi.app | iex
+  iwr app.sophia.team -useb | iex
   ```
 
 https://imgur.com/a/wCcs0Xi
